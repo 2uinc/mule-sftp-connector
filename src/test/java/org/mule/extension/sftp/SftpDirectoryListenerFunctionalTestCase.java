@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThat;
 import static org.mule.extension.sftp.AllureConstants.SftpFeature.SFTP_EXTENSION;
 import static org.mule.tck.probe.PollingProber.check;
 import static org.mule.tck.probe.PollingProber.checkNot;
+
 import org.mule.extension.file.common.api.FileAttributes;
 import org.mule.extension.sftp.api.SftpFileAttributes;
 import org.mule.runtime.api.exception.MuleException;
@@ -23,6 +24,7 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.Processor;
 
 import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -79,10 +81,14 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
     RECEIVED_MESSAGES = null;
   }
 
+  private URI buildPath(String... path) throws Exception {
+    return new URI(String.join("/", path));
+  }
+
   @Test
   @Description("Verifies that a created file is picked")
   public void onFileCreated() throws Exception {
-    File file = new File(MATCHERLESS_LISTENER_FOLDER_NAME, WATCH_FILE);
+    URI file = buildPath(MATCHERLESS_LISTENER_FOLDER_NAME, WATCH_FILE);
     testHarness.write(file.getPath(), WATCH_CONTENT);
     assertPoll(file, WATCH_CONTENT);
   }
@@ -90,9 +96,9 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
   @Test
   @Description("Verifies that files created in subdirs are picked")
   public void recursive() throws Exception {
-    File subdir = new File(MATCHERLESS_LISTENER_FOLDER_NAME, "subdir");
+    URI subdir = buildPath(MATCHERLESS_LISTENER_FOLDER_NAME, "subdir");
     testHarness.makeDir(subdir.getPath());
-    final File file = new File(subdir, WATCH_FILE);
+    URI file = buildPath(subdir.getPath(), WATCH_FILE);
     testHarness.write(file.getPath(), WATCH_CONTENT);
 
     assertPoll(file, WATCH_CONTENT);
@@ -104,14 +110,14 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
     stopFlow("listenWithoutMatcher");
 
     startFlow("listenNonRecursive");
-    File subdir = new File(MATCHERLESS_LISTENER_FOLDER_NAME, "subdir");
+    URI subdir = buildPath(MATCHERLESS_LISTENER_FOLDER_NAME, "subdir");
     testHarness.makeDir(subdir.getPath());
-    File file = new File(subdir, WATCH_FILE);
+    URI file = buildPath(subdir.getPath(), WATCH_FILE);
     testHarness.write(file.getPath(), WATCH_CONTENT);
 
     expectNot(file);
 
-    file = new File(MATCHERLESS_LISTENER_FOLDER_NAME, "nonRecursive.txt");
+    file = buildPath(MATCHERLESS_LISTENER_FOLDER_NAME, "nonRecursive.txt");
     final String nonRecursiveContent = "you shall not recurse";
     testHarness.write(file.getPath(), nonRecursiveContent);
     assertPoll(file, nonRecursiveContent);
@@ -120,8 +126,8 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
   @Test
   @Description("Verifies that only files compliant with the matcher are picked")
   public void matcher() throws Exception {
-    final File file = new File(WITH_MATCHER_FOLDER_NAME, MATCH_FILE);
-    final File rejectedFile = new File(WITH_MATCHER_FOLDER_NAME, WATCH_FILE);
+    final URI file = buildPath(WITH_MATCHER_FOLDER_NAME, MATCH_FILE);
+    final URI rejectedFile = buildPath(WITH_MATCHER_FOLDER_NAME, WATCH_FILE);
     testHarness.write(file.getPath(), DR_MANHATTAN);
     testHarness.write(rejectedFile.getPath(), WATCH_CONTENT);
 
@@ -162,8 +168,8 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
     stopFlow("listenTxtOnly");
 
 
-    final File file = new File(MATCHERLESS_LISTENER_FOLDER_NAME, WATCH_FILE);
-    final File file2 = new File(MATCHERLESS_LISTENER_FOLDER_NAME, WATCH_FILE + "2");
+    final URI file = new URI(MATCHERLESS_LISTENER_FOLDER_NAME + "/" + WATCH_FILE);
+    final URI file2 = new URI(MATCHERLESS_LISTENER_FOLDER_NAME + "/" + WATCH_FILE + "2");
     testHarness.write(file.getPath(), WATCH_CONTENT);
     testHarness.write(file2.getPath(), WATCH_CONTENT);
 
@@ -199,13 +205,13 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
     return attrs.getPath().contains(path);
   }
 
-  private void assertPoll(File file, Object expectedContent) {
+  private void assertPoll(URI file, Object expectedContent) {
     Message message = expect(file);
     String payload = toString(message.getPayload().getValue());
     assertThat(payload, equalTo(expectedContent));
   }
 
-  private Message expect(File file) {
+  private Message expect(URI file) {
     Reference<Message> messageHolder = new Reference<>();
     check(PROBER_TIMEOUT, PROBER_DELAY, () -> {
       getPicked(file).ifPresent(messageHolder::set);
@@ -215,11 +221,11 @@ public class SftpDirectoryListenerFunctionalTestCase extends CommonSftpConnector
     return messageHolder.get();
   }
 
-  private void expectNot(File file) {
+  private void expectNot(URI file) {
     checkNot(PROBER_TIMEOUT, PROBER_DELAY, () -> getPicked(file).isPresent());
   }
 
-  private Optional<Message> getPicked(File file) {
+  private Optional<Message> getPicked(URI file) {
     return RECEIVED_MESSAGES.stream()
         .filter(message -> {
           FileAttributes attributes = (FileAttributes) message.getAttributes().getValue();

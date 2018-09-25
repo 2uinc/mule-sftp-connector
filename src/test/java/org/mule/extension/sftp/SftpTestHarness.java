@@ -10,7 +10,6 @@ import static java.util.stream.Collectors.toList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mule.extension.file.common.api.FileWriteMode.APPEND;
 import static org.mule.extension.file.common.api.FileWriteMode.OVERWRITE;
 import static org.mule.extension.sftp.SftpServer.PASSWORD;
@@ -27,8 +26,6 @@ import org.mule.extension.sftp.internal.connection.SftpClientFactory;
 import org.mule.tck.junit4.rule.DynamicPort;
 import org.mule.test.extension.file.common.api.FileTestHarness;
 
-import com.jcraft.jsch.JSchException;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import com.jcraft.jsch.JSchException;
 import org.apache.sshd.server.config.keys.AuthorizedKeysAuthenticator;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -83,9 +81,11 @@ public class SftpTestHarness extends AbstractSftpTestHarness {
   @Override
   protected void doBefore() throws Exception {
     temporaryFolder.create();
-    System.setProperty(WORKING_DIR_SYSTEM_PROPERTY, temporaryFolder.getRoot().getAbsolutePath());
     setUpServer();
     sftpClient = createDefaultSftpClient();
+    sftpClient.mkdir(WORKING_DIR);
+    sftpClient.changeWorkingDirectory(WORKING_DIR);
+    System.setProperty(WORKING_DIR_SYSTEM_PROPERTY, sftpClient.getWorkingDirectory());
   }
 
   /**
@@ -111,12 +111,11 @@ public class SftpTestHarness extends AbstractSftpTestHarness {
     SftpClient sftpClient = new SftpClientFactory().createInstance("localhost", sftpPort.getNumber(), SHA1PRNG);
     clientAuthConfigurator.configure(sftpClient);
     sftpClient.login(USERNAME);
-    sftpClient.changeWorkingDirectory(temporaryFolder.getRoot().getPath());
     return sftpClient;
   }
 
   public void setUpServer() {
-    sftpServer = new SftpServer(sftpPort.getNumber());
+    sftpServer = new SftpServer(sftpPort.getNumber(), temporaryFolder.getRoot().toPath());
     serverAuthConfigurator.configure(sftpServer);
     sftpServer.start();
   }
@@ -164,7 +163,7 @@ public class SftpTestHarness extends AbstractSftpTestHarness {
   }
 
   public String getRootDirectory() throws Exception {
-    return temporaryFolder.getRoot().getAbsolutePath();
+    return "/";
   }
 
   /**
@@ -231,8 +230,7 @@ public class SftpTestHarness extends AbstractSftpTestHarness {
     SftpFileAttributes file = sftpClient.getAttributes(Paths.get(path));
 
     assertThat(fileAttributes.getName(), equalTo(file.getName()));
-    assertTrue(Paths.get(temporaryFolder.getRoot().getPath(), HELLO_PATH).toString()
-        .contains(Paths.get(fileAttributes.getPath()).toString()));
+    assertThat(fileAttributes.getPath(), is(normalizePath(getWorkingDirectory() + "/" + HELLO_PATH)));
     assertThat(fileAttributes.getSize(), is(file.getSize()));
     assertThat(fileAttributes.getTimestamp(), equalTo(file.getTimestamp()));
     assertThat(fileAttributes.isDirectory(), is(false));
@@ -245,12 +243,12 @@ public class SftpTestHarness extends AbstractSftpTestHarness {
    */
   @Override
   public void assertDeleted(String path) throws Exception {
-    Path directoryPath = temporaryFolder.getRoot().toPath().resolve(path);
+    Path directoryPath = Paths.get(sftpClient.getWorkingDirectory()).resolve(path);
     int lastFragmentIndex = directoryPath.getNameCount() - 1;
 
     Path lastFragment = directoryPath.getName(lastFragmentIndex);
     if (".".equals(lastFragment.toString())) {
-      directoryPath = Paths.get("/").resolve(directoryPath.subpath(0, lastFragmentIndex)).toAbsolutePath();
+      directoryPath = directoryPath.subpath(0, lastFragmentIndex);
     }
 
     assertThat(dirExists(directoryPath.toString()), is(false));

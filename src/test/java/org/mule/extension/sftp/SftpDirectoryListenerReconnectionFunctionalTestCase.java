@@ -7,28 +7,22 @@
 package org.mule.extension.sftp;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mule.extension.sftp.AllureConstants.SftpFeature.SFTP_EXTENSION;
 import static org.mule.tck.probe.PollingProber.check;
-import static org.mule.tck.probe.PollingProber.checkNot;
 
 import org.mule.extension.file.common.api.FileAttributes;
-import org.mule.extension.sftp.api.SftpFileAttributes;
 import org.mule.runtime.api.exception.MuleException;
-import org.mule.runtime.api.lifecycle.Startable;
-import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.util.Reference;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.runtime.core.api.processor.Processor;
 
-import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
 import org.junit.Test;
 
@@ -71,7 +65,7 @@ public class SftpDirectoryListenerReconnectionFunctionalTestCase extends CommonS
 
   @Test
   public void testListenerReadsFilesAfterReconnection() throws Exception {
-    File file = new File(MATCHERLESS_LISTENER_FOLDER_NAME, WATCH_FILE);
+    URI file = new URI(MATCHERLESS_LISTENER_FOLDER_NAME + "/" + WATCH_FILE);
     testHarness.write(file.getPath(), WATCH_CONTENT);
     assertPoll(file, WATCH_CONTENT);
 
@@ -84,13 +78,13 @@ public class SftpDirectoryListenerReconnectionFunctionalTestCase extends CommonS
     assertPoll(file, WATCH_CONTENT);
   }
 
-  private void assertPoll(File file, Object expectedContent) {
+  private void assertPoll(URI file, Object expectedContent) {
     Message message = expect(file);
     String payload = toString(message.getPayload().getValue());
     assertThat(payload, equalTo(expectedContent));
   }
 
-  private Message expect(File file) {
+  private Message expect(URI file) {
     Reference<Message> messageHolder = new Reference<>();
     check(PROBER_TIMEOUT, PROBER_DELAY, () -> {
       getPicked(file).ifPresent(messageHolder::set);
@@ -100,7 +94,7 @@ public class SftpDirectoryListenerReconnectionFunctionalTestCase extends CommonS
     return messageHolder.get();
   }
 
-  private Optional<Message> getPicked(File file) {
+  private Optional<Message> getPicked(URI file) {
     return RECEIVED_MESSAGES.stream()
         .filter(message -> {
           FileAttributes attributes = (FileAttributes) message.getAttributes().getValue();
