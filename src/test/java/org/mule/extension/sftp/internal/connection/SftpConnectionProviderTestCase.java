@@ -107,7 +107,7 @@ public class SftpConnectionProviderTestCase extends AbstractMuleTestCase {
 
   @Test
   public void identityFileWithPassPhrase() throws Exception {
-    provider.setIdentityFile(identityFile.getAbsolutePath());
+    //provider.setIdentityFile(identityFile.getAbsolutePath());
     provider.setPassphrase(PASSPHRASE);
 
     login();
@@ -142,7 +142,7 @@ public class SftpConnectionProviderTestCase extends AbstractMuleTestCase {
 
   @Test
   public void identityFileWithoutPassPhrase() throws Exception {
-    provider.setIdentityFile(identityFile.getAbsolutePath());
+    //provider.setIdentityFile(identityFile.getAbsolutePath());
 
     login();
 
@@ -170,7 +170,7 @@ public class SftpConnectionProviderTestCase extends AbstractMuleTestCase {
 
   @Test
   public void simpleCredentialsPlusIdentity() throws Exception {
-    provider.setIdentityFile(identityFile.getAbsolutePath());
+   // provider.setIdentityFile(identityFile.getAbsolutePath());
     provider.setPassword(PASSWORD);
 
     login();

@@ -121,9 +121,10 @@ public class SftpConnectionProvider extends FileSystemProvider<SftpFileSystem>
     }
     SftpClient client = clientFactory.createInstance(connectionSettings.getHost(), connectionSettings.getPort(),
                                                      connectionSettings.getPrngAlgorithm());
+   
     client.setConnectionTimeoutMillis(getConnectionTimeoutUnit().toMillis(getConnectionTimeout()));
     client.setPassword(connectionSettings.getPassword());
-    client.setIdentity(connectionSettings.getIdentityFile(), connectionSettings.getPassphrase());
+    client.setIdentity(connectionSettings.getPrivateKey(), connectionSettings.getPassphrase());
     if (preferredAuthenticationMethods != null && !preferredAuthenticationMethods.isEmpty()) {
       client.setPreferredAuthenticationMethods(join(preferredAuthenticationMethods, ","));
     }
@@ -183,9 +184,11 @@ public class SftpConnectionProvider extends FileSystemProvider<SftpFileSystem>
     connectionSettings.setPassphrase(passphrase);
   }
 
-  void setIdentityFile(String identityFile) {
-    connectionSettings.setIdentityFile(identityFile);
-  }
+  void setPrivateKey(String privateKey) {
+	    connectionSettings.setPrivateKey(privateKey);
+	  }
+  
+  
 
   void setPreferredAuthenticationMethods(Set<SftpAuthenticationMethod> preferredAuthenticationMethods) {
     this.preferredAuthenticationMethods = preferredAuthenticationMethods;

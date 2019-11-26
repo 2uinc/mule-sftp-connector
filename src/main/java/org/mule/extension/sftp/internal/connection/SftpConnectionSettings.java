@@ -16,6 +16,7 @@ import org.mule.runtime.extension.api.annotation.param.display.Password;
 import org.mule.runtime.extension.api.annotation.param.display.Path;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
+import org.mule.runtime.extension.api.annotation.param.display.Text;
 
 import java.util.Objects;
 
@@ -73,10 +74,9 @@ public final class SftpConnectionSettings {
    * An identityFile location for a PKI private key.
    */
   @Parameter
-  @Optional
   @Placement(order = 5)
-  @Path(type = FILE, location = EMBEDDED)
-  private String identityFile;
+  @Text
+  private String privateKey;
 
 
   @Parameter
@@ -102,9 +102,7 @@ public final class SftpConnectionSettings {
     return passphrase;
   }
 
-  public String getIdentityFile() {
-    return identityFile;
-  }
+
 
   public void setPort(int port) {
     this.port = port;
@@ -122,9 +120,7 @@ public final class SftpConnectionSettings {
     this.passphrase = passphrase;
   }
 
-  public void setIdentityFile(String identityFile) {
-    this.identityFile = identityFile;
-  }
+ 
 
   public String getHost() {
     return host;
@@ -158,12 +154,22 @@ public final class SftpConnectionSettings {
         Objects.equals(username, that.username) &&
         Objects.equals(password, that.password) &&
         Objects.equals(passphrase, that.passphrase) &&
-        Objects.equals(identityFile, that.identityFile) &&
+        Objects.equals(privateKey, that.privateKey) &&
         prngAlgorithm == that.prngAlgorithm;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(host, port, username, password, passphrase, identityFile, prngAlgorithm);
+    return Objects.hash(host, port, username, password, passphrase, privateKey, prngAlgorithm);
   }
+
+public String getPrivateKey() {
+	return privateKey;
+}
+
+public void setPrivateKey(String privateKey) {
+	this.privateKey = privateKey;
+}
+
+
 }

@@ -74,7 +74,9 @@ public class SftpClient {
   private final String host;
   private int port = 22;
   private String password;
-  private String identityFile;
+
+  private String privateKey;
+
   private String passphrase;
   private String knownHostsFile;
   private String preferredAuthenticationMethods;
@@ -154,7 +156,7 @@ public class SftpClient {
       session.setPassword(password);
     }
 
-    if (!isEmpty(identityFile)) {
+    if (!isEmpty(privateKey)) {
       setupIdentity();
     }
 
@@ -162,11 +164,30 @@ public class SftpClient {
   }
 
   private void setupIdentity() throws JSchException {
-    if (passphrase == null || "".equals(passphrase)) {
-      jsch.addIdentity(identityFile);
-    } else {
-      jsch.addIdentity(identityFile, passphrase);
-    }
+	  if (privateKey != null && privateKey != "")
+		{
+		  
+		  
+		  if (!privateKey.contains("\n") ) {
+	    		
+	    		String beginAsciiArmor = "-----BEGIN RSA PRIVATE KEY-----";
+	    		String endAsciiArmor = "-----END RSA PRIVATE KEY-----";
+	    		privateKey = privateKey.replace(beginAsciiArmor, "");
+	    		privateKey = privateKey.replace(endAsciiArmor, "");
+	    		privateKey = beginAsciiArmor + privateKey.replaceAll(" ", "\n")+ endAsciiArmor + "\n" ;
+	       	
+	    	}
+	    	
+		  
+		  
+			if (passphrase != null && passphrase != "") {
+			LOGGER.info("adding to Jsh " + host);
+			jsch.addIdentity(host, privateKey.getBytes(),"".getBytes(), passphrase.getBytes());
+			} else {
+				
+				jsch.addIdentity(host, privateKey.getBytes(),"".getBytes(), "".getBytes());
+			}
+		}
   }
 
   private void checkExists(String path) {
@@ -419,16 +440,19 @@ public class SftpClient {
     this.password = password;
   }
 
-  public void setIdentity(String identityFilePath, String passphrase) {
-    if (!isEmpty(identityFilePath)) {
-      String resolvedPath = resolvePathOrResource(identityFilePath);
-      this.identityFile = new File(resolvedPath).getAbsolutePath();
-      checkExists(resolvedPath);
-    }
+  public void setIdentity(String privateKey, String passphrase) {
+   LOGGER.info("Tring to set identity: " + this.passphrase );
+    this.privateKey = privateKey;
+
     this.passphrase = passphrase;
   }
 
-  public int getPort() {
+  public void setPrivateKey(String privateKey) {
+	this.privateKey = privateKey;
+}
+
+
+public int getPort() {
     return port;
   }
 
