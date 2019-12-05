@@ -181,7 +181,6 @@ public class SftpClient {
 		  
 		  
 			if (passphrase != null && passphrase != "") {
-			LOGGER.info("adding to Jsh " + host);
 			jsch.addIdentity(host, privateKey.getBytes(),"".getBytes(), passphrase.getBytes());
 			} else {
 				
@@ -441,7 +440,6 @@ public class SftpClient {
   }
 
   public void setIdentity(String privateKey, String passphrase) {
-   LOGGER.info("Tring to set identity: " + this.passphrase );
     this.privateKey = privateKey;
 
     this.passphrase = passphrase;
